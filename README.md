@@ -2,6 +2,8 @@
 
 A Streamlit application that leverages the power of SmolDocling for advanced document OCR (Optical Character Recognition). This app extracts text from document images with high accuracy and produces structured output in both DocTags and Markdown formats.
 
+![App](logo.png)
+
 ## Features
 
 - **Single or Multiple Image Processing**: Upload one image or batch process multiple documents
