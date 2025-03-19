@@ -6,3 +6,4 @@ docling-core
 huggingface_hub
 Pillow
 python-dotenv
+numpy<2
