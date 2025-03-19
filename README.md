@@ -24,7 +24,7 @@ A Streamlit application that leverages the power of SmolDocling for advanced doc
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/smoldocling.git
+   git clone https://github.com/AIAnytime/SmolDocling-OCR-App
    cd smoldocling
    ```
 
