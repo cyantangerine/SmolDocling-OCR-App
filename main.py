@@ -7,6 +7,7 @@ import re
 from PIL import Image
 from pathlib import Path
 from dotenv import load_dotenv
+import fitz  # PyMuPDF
 
 # Load environment variables
 load_dotenv()
@@ -103,11 +104,49 @@ def process_single_image(image, prompt_text="Convert this page to docling."):
     return doctags, md_content, processing_time
 
 
+def process_pdf(pdf_file, prompt_text="Convert this PDF to docling."):
+    """Process PDF using PyMuPDF (fitz) to extract text from images"""
+    # Save the uploaded PDF to a temporary file
+    temp_file = tempfile.NamedTemporaryFile(delete=False)
+    temp_file.write(pdf_file.read())  # Write the file content to the temp file
+    temp_file.close()  # Close the file for reading
+
+    pdf_path = temp_file.name  # Get the path to the temp file
+
+    # Open the PDF using PyMuPDF (fitz)
+    doc = fitz.open(pdf_path)
+    
+    all_doctags = []
+    all_md_content = []
+    total_processing_time = 0
+
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        
+        # Convert page to image (pixmap)
+        pix = page.get_pixmap()
+        
+        # Convert pixmap to PIL image
+        image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        
+        # Process the image using the same method as before
+        doctags, md_content, processing_time = process_single_image(image, prompt_text)
+        
+        all_doctags.append(doctags)
+        all_md_content.append(md_content)
+        total_processing_time += processing_time
+    
+    # Combine all doctags and markdown content for the entire PDF
+    combined_doctags = "\n\n".join(all_doctags)
+    combined_md_content = "\n\n".join(all_md_content)
+    
+    return combined_doctags, combined_md_content, total_processing_time
+
 def main():
     st.set_page_config(page_title="SmolDocling OCR App", layout="wide")
     
     st.title("SmolDocling OCR App")
-    st.write("Upload images to extract text using SmolDocling OCR")
+    st.write("Upload images/pdf to extract text using SmolDocling OCR")
     
     if not HF_TOKEN:
         st.warning("HF_TOKEN not found in .env file. Authentication may fail.")
@@ -123,7 +162,7 @@ def main():
     with st.sidebar:
         st.header("Input Options")
         
-        upload_option = st.radio("Choose upload option:", ["Single Image", "Multiple Images"])
+        upload_option = st.radio("Choose upload option:", ["Single Image", "Multiple Images", "PDF File"])
         
         task_type = st.selectbox(
             "Select task type",
@@ -143,8 +182,10 @@ def main():
             if uploaded_file is not None:
                 image = Image.open(uploaded_file).convert("RGB")
                 st.image(image, caption="Uploaded Image", width=250)
-        else:
+        elif upload_option == "Multiple Images":
             uploaded_files = st.file_uploader("Upload multiple images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+        elif upload_option == "PDF File":
+            uploaded_pdf = st.file_uploader("Upload PDF", type=["pdf"])
     
     # Main content area
     if upload_option == "Single Image" and 'uploaded_file' in locals() and uploaded_file is not None:
@@ -190,11 +231,11 @@ def main():
                         for idx, (doctags, md_content, proc_time) in enumerate(results):
                             with st.expander(f"Image {idx+1} Results"):
                                 col1, col2 = st.columns(2)
-                                
+                                 
                                 with col1:
                                     st.image(images[idx], caption=f"Image {idx+1}", width=250)
                                     st.download_button(f"Download DocTags {idx+1}", doctags, file_name=f"output_{idx+1}.dt")
-                                
+                                 
                                 with col2:
                                     st.markdown(md_content)
                                     st.download_button(f"Download Markdown {idx+1}", md_content, file_name=f"output_{idx+1}.md")
@@ -204,6 +245,31 @@ def main():
                         st.success(f"All images processed successfully")
                     except Exception as e:
                         st.error(f"Error processing images: {str(e)}")
+    
+    elif upload_option == "PDF File" and 'uploaded_pdf' in locals() and uploaded_pdf is not None:
+        process_button = st.button("Process PDF")
+        
+        if process_button:
+            with st.spinner("Processing PDF..."):
+                try:
+                    combined_doctags, combined_md_content, total_processing_time = process_pdf(uploaded_pdf, task_type)
+                    
+                    # Display the results for the entire PDF
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.subheader("Extracted DocTags (All Pages)")
+                        st.text_area("DocTags Output", combined_doctags, height=400)
+                        st.download_button("Download All DocTags", combined_doctags, file_name="output_all.dt")
+                    
+                    with col2:
+                        st.subheader("Markdown Output (All Pages)")
+                        st.markdown(combined_md_content)
+                        st.download_button("Download All Markdown", combined_md_content, file_name="output_all.md")
+                    
+                    st.success(f"PDF processed successfully in {total_processing_time:.2f} seconds")
+                except Exception as e:
+                    st.error(f"Error processing PDF: {str(e)}")
     
     # Information section
     with st.expander("About SmolDocling OCR"):
