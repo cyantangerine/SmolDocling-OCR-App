@@ -1,0 +1,4 @@
+--2025-03-28 19:24:20--  ftp://blob/https://github.com/284e1d19-40ca-4dac-8269-df4c4cf4b252
+           => ‘284e1d19-40ca-4dac-8269-df4c4cf4b252’
+Resolving blob (blob)... failed: Temporary failure in name resolution.
+wget: unable to resolve host address ‘blob’
