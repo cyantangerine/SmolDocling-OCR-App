@@ -73,6 +73,7 @@ A Streamlit application that leverages the power of SmolDocling for advanced doc
 - Pillow - Image processing library
 - python-dotenv - Environment variable management
 - accelerate - Optional for hardware acceleration
+- PyMuPDF - pdf data extraction, analysis, conversion & manipulation library
 
 ## License
 
